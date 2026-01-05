@@ -13,12 +13,12 @@ export default function Header() {
         { name: "Главная", path: "/" },
         { name: "О проекте", path: "/#about" },
         { name: "Галерея", path: "/#gallery" },
-        { name: "Поддержка", path: "/#support" }
+        { name: "Поддержка", path: "/#support" },
     ];
 
     const handleSignOut = async () => {
         await signOut();
-        navigate('/');
+        navigate("/");
     };
 
     return (
@@ -27,7 +27,7 @@ export default function Header() {
                 {/* Логотип */}
                 <Link to="/" className="flex items-center gap-4">
                     <img
-                        src="/public/assets/pngs/favicon.ico"
+                        src="/assets/pngs/favicon.ico"
                         alt="Logo"
                         className="h-14 w-14 rounded-xl"
                     />
@@ -47,9 +47,8 @@ export default function Header() {
                             {link.name}
                         </Link>
                     ))}
-                    </nav>
-                    <nav className="hidden md:flex gap-7 items-center font-heading">
-
+                </nav>
+                <nav className="hidden md:flex gap-7 items-center font-heading">
                     {/* CTA / User Profile */}
                     {user ? (
                         <div className="flex items-center gap-4">
@@ -59,18 +58,33 @@ export default function Header() {
                                     {user.user_metadata.full_name || user.email}
                                 </span>
                             </div>
-                            <Button size="sm" variant="outline" onClick={handleSignOut} iconRight={<LogOut className="w-4 h-4" />}>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handleSignOut}
+                                iconRight={<LogOut className="w-4 h-4" />}
+                            >
                                 Выйти
                             </Button>
                         </div>
                     ) : (
                         <>
-                        <Button size="md" gap={0} variant="primary" onClick={() => navigate('/auth/register')}>
-                            Регистрация
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => navigate('/auth/login')}>
-                            Войти
-                        </Button></>
+                            <Button
+                                size="md"
+                                gap={0}
+                                variant="primary"
+                                onClick={() => navigate("/auth/register")}
+                            >
+                                Регистрация
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => navigate("/auth/login")}
+                            >
+                                Войти
+                            </Button>
+                        </>
                     )}
                 </nav>
 
@@ -125,7 +139,7 @@ export default function Header() {
                         {link.name}
                     </Link>
                 ))}
-                
+
                 {user ? (
                     <div className="flex flex-col gap-3 pt-2 border-t border-backgroundDark/10">
                         <div className="flex items-center gap-2 text-textDark">
@@ -134,15 +148,26 @@ export default function Header() {
                                 {user.user_metadata.full_name || user.email}
                             </span>
                         </div>
-                        <Button size="sm" variant="outline" onClick={handleSignOut} fullWidth iconRight={<LogOut className="w-4 h-4" />}>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleSignOut}
+                            fullWidth
+                            iconRight={<LogOut className="w-4 h-4" />}
+                        >
                             Выйти
                         </Button>
                     </div>
                 ) : (
-                    <Button size="sm" variant="primary" fullWidth onClick={() => {
-                        setMobileMenuOpen(false);
-                        navigate('/auth/login');
-                    }}>
+                    <Button
+                        size="sm"
+                        variant="primary"
+                        fullWidth
+                        onClick={() => {
+                            setMobileMenuOpen(false);
+                            navigate("/auth/login");
+                        }}
+                    >
                         Войти
                     </Button>
                 )}
