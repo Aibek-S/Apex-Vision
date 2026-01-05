@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "../UI/button.tsx";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/useAuth";
 import { LogOut, User } from "lucide-react";
 
@@ -8,6 +8,7 @@ export default function Header() {
     const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const navLinks = [
         { name: "Главная", path: "/" },
@@ -21,17 +22,47 @@ export default function Header() {
         navigate("/");
     };
 
+    const handleNavLinkClick = (
+        e: React.MouseEvent<HTMLAnchorElement>,
+        path: string
+    ) => {
+        e.preventDefault();
+        setMobileMenuOpen(false);
+
+        // If it's a hash link
+        if (path.includes("#")) {
+            const hash = path.split("#")[1];
+
+            // If we're already on home page, just scroll
+            if (location.pathname === "/") {
+                const element = document.getElementById(hash);
+                if (element) {
+                    element.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start",
+                    });
+                }
+            } else {
+                // Navigate to home with hash
+                navigate(`/#${hash}`);
+            }
+        } else {
+            // Regular navigation
+            navigate(path);
+        }
+    };
+
     return (
-        <header className="bg-background shadow-inner">
-            <div className="max-w-7xl mx-auto px-6 py-0.5 flex items-center justify-between">
+        <header className="bg-background shadow-inner sticky top-0 z-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-1 flex items-center justify-between">
                 {/* Логотип */}
-                <Link to="/" className="flex items-center gap-4">
+                <Link to="/" className="flex items-center gap-3 sm:gap-4">
                     <img
                         src="/assets/pngs/favicon.ico"
                         alt="Logo"
-                        className="h-14 w-14 rounded-xl"
+                        className="h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 rounded-xl"
                     />
-                    <span className="font-logo font-medium text-primary drop-shadow-lg text-lg sm:text-xl md:text-3xl">
+                    <span className="font-logo font-medium text-primary drop-shadow-lg text-xl sm:text-2xl md:text-3xl">
                         Apex-Vision
                     </span>
                 </Link>
@@ -42,6 +73,7 @@ export default function Header() {
                         <Link
                             key={link.name}
                             to={link.path}
+                            onClick={(e) => handleNavLinkClick(e, link.path)}
                             className="text-textDark font-heading font-medium hover:text-primary transition-colors duration-200 ease-out relative pb-1 before:content-[''] before:absolute before:bottom-0 before:left-0 before:bg-primary before:transition-all before:duration-300 before:ease-out before:w-0 hover:before:w-full before:h-0.5"
                         >
                             {link.name}
@@ -89,10 +121,10 @@ export default function Header() {
                 </nav>
 
                 {/* Бургер меню mobile */}
-                <div className="md:hidden">
+                <div className="md:hidden flex items-center">
                     <button
                         onClick={() => setMobileMenuOpen(!isMobileMenuOpen)}
-                        className="relative flex flex-col gap-1 w-6 h-6 justify-center"
+                        className="relative flex flex-col gap-1 w-7 h-7 justify-center p-2 -m-2"
                     >
                         <div className="flex flex-col justify-between w-6 h-4 absolute">
                             <span
@@ -133,7 +165,7 @@ export default function Header() {
                     <Link
                         key={link.name}
                         to={link.path}
-                        onClick={() => setMobileMenuOpen(false)}
+                        onClick={(e) => handleNavLinkClick(e, link.path)}
                         className="text-textDark font-medium hover:text-primary transition-colors duration-200 ease-out relative pb-1 before:content-[''] before:absolute before:bottom-0 before:left-0 before:bg-primary before:transition-all before:duration-300 before:ease-out before:w-0 hover:before:w-full before:h-0.5"
                     >
                         {link.name}
