@@ -18,6 +18,7 @@ import DashHelp from "./pages/dashboard/dash-help.tsx";
 // Подключаем глобальные стили (включая директивы Tailwind)
 import "./index.css";
 import "./styles/tailwind.css";
+import { Analytics } from "@vercel/analytics/next";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
     <AuthProvider>
@@ -48,5 +49,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                 </Route>
             </Routes>
         </BrowserRouter>
+        <Analytics />
     </AuthProvider>
 );
