@@ -9,6 +9,7 @@ import { useAuth } from "../../contexts/useAuth";
 const statusLabels: Record<Artifact["status"], string> = {
     created: "Создан",
     processing: "В обработке",
+    images_collected: "Изображения собраны",
     ready: "Готов",
     error: "Ошибка",
 };
@@ -53,7 +54,7 @@ export default function DashProject() {
                 .select(
                     "id,name,status,created_at,updated_at,user_id,validation_status,image_count,last_capture_at,capture_mode,is_public"
                 )
-                .eq("id", projectId)
+                .eq("id", projectId as string)
                 .single();
 
             if (error) {

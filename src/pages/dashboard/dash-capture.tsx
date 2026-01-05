@@ -132,7 +132,7 @@ export default function DashCapture() {
                   type="button"
                   key={mode.value}
                   onClick={() => setSelectedMode(mode.value)}
-                  disabled={session && session.capture_mode !== mode.value}
+                  disabled={!!session && session.capture_mode !== mode.value}
                   className={`rounded-2xl border px-4 py-5 text-left transition-all ${
                     isActive
                       ? "border-primary/40 bg-primary/5 shadow-sm"

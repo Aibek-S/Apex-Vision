@@ -7,7 +7,6 @@ import {
     Check,
     AlertCircle,
     Shield,
-    Loader2,
 } from "lucide-react";
 import { Button } from "../../components/UI/button";
 import { useAuth } from "../../contexts/useAuth";

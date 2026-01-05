@@ -14,7 +14,12 @@ import { supabase } from "../../lib/supabase";
 /**
  * Типы статусов артефакта, соответствующие значениям в таблице artifacts
  */
-export type ArtifactStatus = "created" | "processing" | "error" | "ready";
+export type ArtifactStatus =
+    | "created"
+    | "processing"
+    | "images_collected"
+    | "error"
+    | "ready";
 
 /**
  * Интерфейс артефакта из Supabase
@@ -52,6 +57,11 @@ const statusConfig = {
         label: "В обработке",
         color: "text-primary bg-primary/10 border-primary/20",
         icon: <Loader2 className="w-4 h-4 animate-spin" />,
+    },
+    images_collected: {
+        label: "Изображения собраны",
+        color: "text-primary bg-primary/10 border-primary/20",
+        icon: <CheckCircle2 className="w-4 h-4" />,
     },
     error: {
         label: "Ошибка",
