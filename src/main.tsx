@@ -18,7 +18,7 @@ import DashHelp from "./pages/dashboard/dash-help.tsx";
 // Подключаем глобальные стили (включая директивы Tailwind)
 import "./index.css";
 import "./styles/tailwind.css";
-import { Analytics } from "@vercel/analytics/next";
+import { Analytics } from "@vercel/analytics/react";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
     <AuthProvider>
