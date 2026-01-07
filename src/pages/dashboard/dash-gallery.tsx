@@ -26,7 +26,7 @@ export default function DashGallery() {
         const fetchPublicArtifacts = async () => {
             setLoading(true);
             setError(null);
-            
+
             const { data, error } = await supabase
                 .from("artifacts")
                 .select(
@@ -133,8 +133,8 @@ export default function DashGallery() {
                             {error}
                         </p>
                         <p className="text-xs text-secondary/70 mt-3">
-                            Возможно, нужно настроить RLS политику для публичного
-                            доступа к артефактам.
+                            Возможно, нужно настроить RLS политику для
+                            публичного доступа к артефактам.
                         </p>
                     </div>
                 )}

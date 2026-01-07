@@ -16,7 +16,10 @@ export default function DashProfile() {
     const [fullName, setFullName] = useState("");
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+    const [message, setMessage] = useState<{
+        type: "success" | "error";
+        text: string;
+    } | null>(null);
 
     useEffect(() => {
         if (!user) return;
@@ -53,24 +56,28 @@ export default function DashProfile() {
         }
 
         if (!fullName.trim()) {
-            setMessage({ type: "error", text: "Введите имя (минимум 3 символа)" });
+            setMessage({
+                type: "error",
+                text: "Введите имя (минимум 3 символа)",
+            });
             return;
         }
 
         if (fullName.trim().length < 3) {
-            setMessage({ type: "error", text: "Имя должно содержать минимум 3 символа" });
+            setMessage({
+                type: "error",
+                text: "Имя должно содержать минимум 3 символа",
+            });
             return;
         }
 
         setSaving(true);
 
-        const { error } = await supabase
-            .from("profiles")
-            .upsert({
-                id: user.id,
-                full_name: fullName.trim(),
-                updated_at: new Date().toISOString(),
-            });
+        const { error } = await supabase.from("profiles").upsert({
+            id: user.id,
+            full_name: fullName.trim(),
+            updated_at: new Date().toISOString(),
+        });
 
         if (error) {
             setMessage({ type: "error", text: error.message });
@@ -139,7 +146,9 @@ export default function DashProfile() {
                                 <input
                                     type="text"
                                     value={fullName}
-                                    onChange={(event) => setFullName(event.target.value)}
+                                    onChange={(event) =>
+                                        setFullName(event.target.value)
+                                    }
                                     placeholder="Например, Иван Петров"
                                     className="w-full rounded-xl border border-white/50 bg-background/40 px-4 py-2 text-textDark focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                                 />
@@ -149,8 +158,14 @@ export default function DashProfile() {
                             </label>
 
                             <div className="flex flex-wrap gap-3 pt-2">
-                                <Button type="submit" variant="primary" loading={saving}>
-                                    {saving ? "Сохранение..." : "Сохранить изменения"}
+                                <Button
+                                    type="submit"
+                                    variant="primary"
+                                    loading={saving}
+                                >
+                                    {saving
+                                        ? "Сохранение..."
+                                        : "Сохранить изменения"}
                                 </Button>
                             </div>
 
@@ -242,7 +257,10 @@ export default function DashProfile() {
 
                         <div className="pt-4 border-t border-black/5">
                             <p className="text-xs text-secondary/70">
-                                ID: <span className="font-mono text-[10px]">{user?.id}</span>
+                                ID:{" "}
+                                <span className="font-mono text-[10px]">
+                                    {user?.id}
+                                </span>
                             </p>
                         </div>
                     </div>

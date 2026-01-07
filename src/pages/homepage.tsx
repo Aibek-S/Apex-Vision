@@ -4,7 +4,7 @@ import Header from "../components/layouts/header";
 import { Button } from "../components/UI/button";
 import {
     Camera,
-    Box,
+    Box,    
     Eye,
     Share2,
     ArrowRight,
@@ -164,7 +164,7 @@ export default function Home() {
                     <div className="space-y-8 animate-fade-in order-2 lg:order-1">
                         <div className="space-y-4 text-center lg:text-left">
                             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-textDark leading-tight tracking-tight">
-                                Будущее в{" "}
+                                Прошлое в{" "}
                                 <span className="text-primary relative inline-block">
                                     новом измерении
                                     <span className="absolute -bottom-1 left-0 w-full h-2 bg-primary/20 -z-10" />

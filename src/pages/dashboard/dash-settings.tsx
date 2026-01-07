@@ -1,13 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-    Lock,
-    Mail,
-    LogOut,
-    Check,
-    AlertCircle,
-    Shield,
-} from "lucide-react";
+import { Lock, Mail, LogOut, Check, AlertCircle, Shield } from "lucide-react";
 import { Button } from "../../components/UI/button";
 import { useAuth } from "../../contexts/useAuth";
 
@@ -198,7 +191,9 @@ export default function DashSettings() {
                             loading={passwordLoading}
                             fullWidth
                         >
-                            {passwordLoading ? "Обновление..." : "Обновить пароль"}
+                            {passwordLoading
+                                ? "Обновление..."
+                                : "Обновить пароль"}
                         </Button>
 
                         {passwordMessage && (

@@ -25,3 +25,7 @@ docs
 *.njsproj
 *.sln
 *.sw?
+
+# Не загружать рабочие папки (каталоги) в git
+/photo_to_3d/
+/photo_processing/

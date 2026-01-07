@@ -25,7 +25,9 @@ export function BottomTabs({ items }: BottomTabsProps) {
                         >
                             <span
                                 className={`flex h-6 w-6 items-center justify-center ${
-                                    isActive ? "text-primary" : "text-secondary/60"
+                                    isActive
+                                        ? "text-primary"
+                                        : "text-secondary/60"
                                 }`}
                             >
                                 {item.icon}
