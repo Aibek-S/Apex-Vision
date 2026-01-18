@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useChat } from "ai/react";
-import { MessageCircle, X, Send, User, Library, Loader2 } from "lucide-react";
+import { MessageCircle, X, Send, Library, Loader2 } from "lucide-react";
 
 const CHAT_API_URL =
     import.meta.env.VITE_CHAT_API_URL || "http://localhost:3001/api/chat";

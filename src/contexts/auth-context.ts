@@ -4,7 +4,7 @@ import type { Session, User } from "@supabase/supabase-js";
 export type Profile = {
     id: string;
     full_name: string | null;
-    role: "museum" | "public" | null;
+    role: string | null;
     is_guest: boolean | null;
     updated_at: string | null;
 };
