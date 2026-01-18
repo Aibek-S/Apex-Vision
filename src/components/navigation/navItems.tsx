@@ -3,7 +3,6 @@ import {
     LayoutDashboard,
     Image,
     User,
-    Settings,
     HelpCircle,
     PlusSquare,
 } from "lucide-react";
@@ -44,13 +43,6 @@ export const navItems: NavItem[] = [
         to: "/dashboard/profile",
         description: "Данные пользователя",
         icon: <User className="w-5 h-5" />,
-    },
-    {
-        id: "settings",
-        label: "Настройки",
-        to: "/dashboard/settings",
-        description: "Темы и язык",
-        icon: <Settings className="w-5 h-5" />,
     },
     {
         id: "help",

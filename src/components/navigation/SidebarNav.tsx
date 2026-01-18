@@ -18,14 +18,14 @@ export function SidebarNav({ items, avatar }: SidebarNavProps) {
                     {avatar.initials}
                 </div>
                 <div className="space-y-0.5 overflow-hidden">
-                    <p className="truncate text-sm font-bold text-textDark">
+                    <p className="truncate text-md font-bold text-textDark">
                         {avatar.name}
                     </p>
                     <p
                         className="truncate text-[10px] font-black uppercase tracking-wider text-secondary/60"
                         title={avatar.email ?? ""}
                     >
-                        Исследователь
+                        {avatar.email ?? ""}
                     </p>
                 </div>
             </div>

@@ -4,10 +4,11 @@ import Header from "../components/layouts/header";
 import { Button } from "../components/UI/button";
 import {
     Camera,
-    Box,    
+    Box,
     Eye,
     Share2,
     ArrowRight,
+    ChevronDown,
     Info,
     Image,
     Mail,
@@ -37,13 +38,20 @@ const ProcessStep: React.FC<{
         style={{ animationDelay: `${index * 100}ms` }}
     >
         <div
-            className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+            className={`relative w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center transition-all duration-300 ${
                 isActive
                     ? "bg-primary text-white shadow-xl shadow-primary/40 rotate-3"
                     : "bg-backgroundDark/40 text-secondary -rotate-3 hover:rotate-0"
             }`}
         >
             <div className="scale-75 sm:scale-100">{icon}</div>
+            {index < 3 && (
+                <ArrowRight
+                    className={`w-5 h-5 transition-colors hidden lg:block absolute -right-8 top-1/2 -translate-y-1/2 ${
+                        isActive ? "text-primary" : "text-backgroundDark/30"
+                    }`}
+                />
+            )}
         </div>
         <div className="text-center">
             <h3
@@ -57,31 +65,24 @@ const ProcessStep: React.FC<{
                 {description}
             </p>
         </div>
-        {index < 3 && (
-            <ArrowRight
-                className={`w-5 h-5 transition-colors hidden lg:block absolute -right-6 top-1/2 -translate-y-1/2 ${
-                    isActive ? "text-primary" : "text-backgroundDark/30"
-                }`}
-            />
-        )}
     </div>
 );
 
 const steps = [
     {
         icon: <Camera className="w-8 h-8" />,
-        title: "Сканируй",
-        description: "Загрузи фотографии",
+        title: "Сканирование",
+        description: "Shining 3D SE",
     },
     {
         icon: <Box className="w-8 h-8" />,
-        title: "Получи 3D модель",
-        description: "Автоматическая обработка",
+        title: "Синхронизация",
+        description: "Watcher",
     },
     {
         icon: <Eye className="w-8 h-8" />,
-        title: "Исследуй",
-        description: "Изучи детали",
+        title: "Анализ",
+        description: "APEX-AI",
     },
     {
         icon: <Share2 className="w-8 h-8" />,
@@ -89,6 +90,38 @@ const steps = [
         description: "С миром",
     },
 ];
+
+const FAQItem: React.FC<{ question: string; answer: string }> = ({
+    question,
+    answer,
+}) => {
+    const [isOpen, setIsOpen] = useState(false);
+
+    return (
+        <div className="bg-white/70 rounded-2xl overflow-hidden border border-white/50 transition-all duration-300">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex items-center justify-between p-6 text-left hover:bg-white/40 transition-colors"
+            >
+                <h4 className="font-bold text-textDark pr-4">{question}</h4>
+                <ChevronDown
+                    className={`w-5 h-5 text-primary transition-transform duration-300 ${
+                        isOpen ? "rotate-180" : ""
+                    }`}
+                />
+            </button>
+            <div
+                className={`transition-all duration-300 ease-in-out ${
+                    isOpen ? "max-h-40 p-6 pt-0" : "max-h-0"
+                } overflow-hidden`}
+            >
+                <p className="text-secondary text-sm leading-relaxed">
+                    {answer}
+                </p>
+            </div>
+        </div>
+    );
+};
 
 export default function Home() {
     const [activeStep, setActiveStep] = useState(0);
@@ -171,9 +204,9 @@ export default function Home() {
                                 </span>
                             </h1>
                             <p className="mx-auto lg:mx-0 max-w-2xl text-lg sm:text-xl text-secondary leading-relaxed">
-                                Цифровизация артефактов через 3D-модели.
+                                Автоматизированная оцифровка артефактов через
                                 <br className="hidden sm:block" />
-                                Быстро. Безопасно. Современно.
+                                3D-сканирование и искусственный интеллект.
                             </p>
                         </div>
 
@@ -207,6 +240,7 @@ export default function Home() {
                             </Button>
                             <Button
                                 size="lg"
+                                onClick={() => navigate("/#about")}
                                 variant="outline"
                                 className="w-full sm:w-auto text-lg h-14 px-8"
                             >
@@ -246,9 +280,10 @@ export default function Home() {
                             </h2>
                         </div>
                         <p className="text-lg text-secondary max-w-3xl mx-auto leading-relaxed">
-                            Apex-Vision — это современная платформа для
-                            цифровизации физических объектов через создание
-                            3D-моделей на основе фотографий.
+                            Apex-Vision — это проект для автоматизированной
+                            цифровизации артефактов. Мы объединяем
+                            профессиональное 3D-сканирование и мощь APEX-AI для
+                            цифровизации археологии.
                         </p>
                     </div>
 
@@ -258,11 +293,12 @@ export default function Home() {
                                 <Camera className="w-7 h-7" />
                             </div>
                             <h3 className="text-xl font-bold text-textDark">
-                                Простота использования
+                                Профессиональный захват
                             </h3>
                             <p className="text-secondary leading-relaxed">
-                                Загрузите фотографии объекта с разных ракурсов,
-                                и наша система автоматически создаст 3D-модель.
+                                Использование сканера Shining 3D EinScan-SE
+                                позволяет достигать микронной точности при
+                                оцифровке физических объектов.
                             </p>
                         </div>
 
@@ -271,11 +307,12 @@ export default function Home() {
                                 <Box className="w-7 h-7" />
                             </div>
                             <h3 className="text-xl font-bold text-textDark">
-                                Высокое качество
+                                Умная синхронизация
                             </h3>
                             <p className="text-secondary leading-relaxed">
-                                Используем современные алгоритмы фотограмметрии
-                                для создания детализированных 3D-моделей.
+                                Наш скрипт-наблюдатель (Watcher) мгновенно
+                                передает данные со сканера в облако, обеспечивая
+                                бесшовный пользовательский путь.
                             </p>
                         </div>
 
@@ -284,11 +321,13 @@ export default function Home() {
                                 <Share2 className="w-7 h-7" />
                             </div>
                             <h3 className="text-xl font-bold text-textDark">
-                                Делитесь результатами
+                                AI-Археолог
                             </h3>
                             <p className="text-secondary leading-relaxed">
-                                Публикуйте свои работы в галерее, делитесь ими с
-                                коллегами и сообществом.
+                                Интеграция с нашим собственным искусственным
+                                интеллектом позволяет автоматически определять
+                                материал, эпоху и назначение артефакта по его
+                                3D-скану.
                             </p>
                         </div>
                     </div>
@@ -438,37 +477,18 @@ export default function Home() {
                             Часто задаваемые вопросы
                         </h3>
                         <div className="space-y-4">
-                            <div className="bg-white/70 rounded-2xl p-6">
-                                <h4 className="font-bold text-textDark mb-2">
-                                    Как начать работу?
-                                </h4>
-                                <p className="text-secondary text-sm">
-                                    Зарегистрируйтесь, создайте новый артефакт и
-                                    загрузите 20-30 фотографий объекта с разных
-                                    ракурсов. Система автоматически обработает
-                                    их и создаст 3D-модель.
-                                </p>
-                            </div>
-                            <div className="bg-white/70 rounded-2xl p-6">
-                                <h4 className="font-bold text-textDark mb-2">
-                                    Какие форматы фотографий поддерживаются?
-                                </h4>
-                                <p className="text-secondary text-sm">
-                                    Мы поддерживаем JPG, PNG, WEBP, HEIC и HEIF
-                                    форматы. Максимальный размер одного файла —
-                                    10 МБ.
-                                </p>
-                            </div>
-                            <div className="bg-white/70 rounded-2xl p-6">
-                                <h4 className="font-bold text-textDark mb-2">
-                                    Сколько времени занимает обработка?
-                                </h4>
-                                <p className="text-secondary text-sm">
-                                    Время обработки зависит от количества
-                                    фотографий и сложности объекта. Обычно это
-                                    занимает от нескольких минут до часа.
-                                </p>
-                            </div>
+                            <FAQItem
+                                question="Как происходит захват объекта?"
+                                answer="Мы используем профессиональный 3D-сканер Shining 3D EinScan-SE. Вам достаточно поставить объект на поворотный стол и запустить сканирование в ПО EXScan."
+                            />
+                            <FAQItem
+                                question="Что такое Watcher Script?"
+                                answer="Это специальный скрипт-наблюдатель, который следит за папкой экспорта на вашем ПК. Как только вы сохраняете модель, он автоматически отправляет ее на платформу обеспечиваю автоматизацию всего процесса."
+                            />
+                            <FAQItem
+                                question="Как работает AI-анализ?"
+                                answer="После загрузки модели наша система использует APEX-AI для мгновенного определения характеристик артефакта: материала, исторической эпохи и возможного назначения."
+                            />
                         </div>
                     </div>
 

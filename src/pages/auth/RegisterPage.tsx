@@ -8,7 +8,10 @@ export default function RegisterPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [fullName, setFullName] = useState("");
+    const [isMuseumStaff, setIsMuseumStaff] = useState(false);
+    const [museumCode, setMuseumCode] = useState("");
     const [loading, setLoading] = useState(false);
+    const [guestLoading, setGuestLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
     const navigate = useNavigate();
@@ -18,12 +21,26 @@ export default function RegisterPage() {
         setLoading(true);
         setError(null);
 
-        const { error } = await supabase.auth.signUp({
+        // Секретный код хранится в .env и нужен только сотрудникам музея.
+        const staffCode =
+            import.meta.env.VITE_MUSEUM_STAFF_CODE || "MUSEUM-2026";
+
+        if (isMuseumStaff && museumCode.trim() !== staffCode) {
+            setError("Неверный спец-код сотрудника музея");
+            setLoading(false);
+            return;
+        }
+
+        const role = isMuseumStaff ? "museum" : "public";
+
+        const { data, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
                 data: {
                     full_name: fullName,
+                    role,
+                    is_guest: false,
                 },
             },
         });
@@ -31,12 +48,57 @@ export default function RegisterPage() {
         if (error) {
             setError(error.message);
             setLoading(false);
-        } else {
-            setSuccess(true);
-            setLoading(false);
-            // Wait a bit then redirect or show message
-            setTimeout(() => navigate("/auth/login"), 3000);
+            return;
         }
+
+        if (data.user?.id) {
+            const { error: profileError } = await supabase
+                .from("profiles")
+                .upsert({
+                    id: data.user.id,
+                    full_name: fullName.trim(),
+                    role,
+                    is_guest: false,
+                    updated_at: new Date().toISOString(),
+                });
+
+            if (profileError) {
+                setError(profileError.message);
+                setLoading(false);
+                return;
+            }
+        }
+
+        setSuccess(true);
+        setLoading(false);
+        // Wait a bit then redirect or show message
+        setTimeout(() => navigate("/dashboard"), 3000);
+    };
+
+    const handleGuestLogin = async () => {
+        setGuestLoading(true);
+        setError(null);
+
+        const { data, error } = await supabase.auth.signInAnonymously();
+
+        if (error) {
+            setError(error.message);
+            setGuestLoading(false);
+            return;
+        }
+
+        if (data.user?.id) {
+            await supabase.from("profiles").upsert({
+                id: data.user.id,
+                full_name: "Гость",
+                role: "public",
+                is_guest: true,
+                updated_at: new Date().toISOString(),
+            });
+        }
+
+        setGuestLoading(false);
+        navigate("/dashboard/gallery", { replace: true });
     };
 
     return (
@@ -69,8 +131,7 @@ export default function RegisterPage() {
                             Успешно!
                         </h2>
                         <p className="text-green-700">
-                            Проверьте вашу почту для подтверждения регистрации.
-                            Перенаправление на вход...
+                            Перенаправление в ваш кабинет
                         </p>
                     </div>
                 ) : (
@@ -123,6 +184,39 @@ export default function RegisterPage() {
                                     />
                                 </div>
                             </div>
+
+                            <div className="rounded-2xl border border-secondary/15 bg-white/70 p-4">
+                                <label className="flex items-center gap-3 text-sm text-textDark">
+                                    <input
+                                        type="checkbox"
+                                        checked={isMuseumStaff}
+                                        onChange={(e) =>
+                                            setIsMuseumStaff(e.target.checked)
+                                        }
+                                        className="h-4 w-4 accent-primary"
+                                    />
+                                    Вы из музея?
+                                </label>
+                                <p className="mt-2 text-xs text-secondary">
+                                    Если вы сотрудник музея, включите этот
+                                    переключатель и введите спец-код.
+                                </p>
+
+                                {isMuseumStaff && (
+                                    <div className="mt-3 space-y-2">
+                                        <input
+                                            type="password"
+                                            value={museumCode}
+                                            onChange={(e) =>
+                                                setMuseumCode(e.target.value)
+                                            }
+                                            placeholder="Секретный спец-код"
+                                            required
+                                            className="text-sm w-full h-11 px-4 bg-white/80 border border-secondary/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {error && (
@@ -140,6 +234,19 @@ export default function RegisterPage() {
                             Создать аккаунт
                         </Button>
                     </form>
+                )}
+
+                {!success && (
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        loading={guestLoading}
+                        fullWidth
+                        size="lg"
+                        onClick={handleGuestLogin}
+                    >
+                        Войти без данных как гость
+                    </Button>
                 )}
 
                 <div className="text-center text-sm text-secondary">

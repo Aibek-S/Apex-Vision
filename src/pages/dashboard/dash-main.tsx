@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Search, Plus, Filter } from "lucide-react";
+import { Loader2, Search, Plus } from "lucide-react";
 import { Button } from "../../components/UI/button";
 import { ArtifactCard, type Artifact } from "../../components/UI/artifact_card";
 import { supabase } from "../../lib/supabase";
@@ -81,8 +81,8 @@ export default function DashMain() {
                         <span className="text-primary">{displayName}</span>
                     </h1>
                     <p className="text-base text-secondary/80 max-w-xl">
-                        Следите за прогрессом по оцифровке и быстро переходите к
-                        нужному проекту.
+                        Управляйте вашими проектами и быстро переходите к
+                        нужному артефакту.
                     </p>
                 </div>
                 <Button
@@ -118,13 +118,6 @@ export default function DashMain() {
                                 className="pl-10 pr-4 py-2 bg-white/50 border border-white/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all w-full md:w-[280px]"
                             />
                         </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="bg-white/50"
-                        >
-                            <Filter className="w-4 h-4" />
-                        </Button>
                     </div>
                 </div>
 

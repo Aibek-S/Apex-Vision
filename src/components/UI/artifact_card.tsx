@@ -33,7 +33,7 @@ export interface Artifact {
     created_at: string;
     updated_at?: string;
     user_id?: string;
-    thumbnail_url?: string;
+    thumbnail_url?: string | null;
     last_capture_at?: string | null;
     capture_mode?: string | null;
 }
@@ -78,6 +78,15 @@ const statusConfig = {
 /**
  * Компонент карточки артефакта с поддержкой Realtime обновлений из базы
  */
+const PHOTO_BUCKET = "artifacts-images";
+
+const resolveStoragePath = (value: string) => {
+    if (value.startsWith(`${PHOTO_BUCKET}/`)) {
+        return value.slice(PHOTO_BUCKET.length + 1);
+    }
+    return value;
+};
+
 export const ArtifactCard: React.FC<ArtifactCardProps> = ({
     artifact: initialArtifact,
     onClick,
@@ -86,6 +95,7 @@ export const ArtifactCard: React.FC<ArtifactCardProps> = ({
     const navigate = useNavigate();
     // Используем локальный стейт, чтобы карточка могла обновляться в реальном времени
     const [artifact, setArtifact] = useState<Artifact>(initialArtifact);
+    const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
 
     const config = statusConfig[artifact.status] || statusConfig.created;
 
@@ -112,6 +122,38 @@ export const ArtifactCard: React.FC<ArtifactCardProps> = ({
             supabase.removeChannel(channel);
         };
     }, [artifact.id]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const loadThumbnail = async () => {
+            if (!artifact.thumbnail_url) {
+                setThumbnailUrl(null);
+                return;
+            }
+            if (artifact.thumbnail_url.startsWith("http")) {
+                setThumbnailUrl(artifact.thumbnail_url);
+                return;
+            }
+            const storagePath = resolveStoragePath(artifact.thumbnail_url);
+            const { data, error } = await supabase.storage
+                .from(PHOTO_BUCKET)
+                .createSignedUrl(storagePath, 60 * 60);
+
+            if (!isMounted) return;
+            if (error) {
+                setThumbnailUrl(null);
+                return;
+            }
+            setThumbnailUrl(data.signedUrl);
+        };
+
+        loadThumbnail();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [artifact.thumbnail_url]);
 
     // Хелпер для форматирования времени
     const getTimeAgo = (dateString: string) => {
@@ -150,9 +192,9 @@ export const ArtifactCard: React.FC<ArtifactCardProps> = ({
         >
             {/* Thumbnail Placeholder/Image */}
             <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-backgroundLight border border-black/5">
-                {artifact.thumbnail_url ? (
+                {thumbnailUrl ? (
                     <img
-                        src={artifact.thumbnail_url}
+                        src={thumbnailUrl}
                         alt={artifact.name}
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />

@@ -12,7 +12,6 @@ import DashCreate from "./pages/dashboard/dash-create.tsx";
 import DashCapture from "./pages/dashboard/dash-capture.tsx";
 import DashGallery from "./pages/dashboard/dash-gallery.tsx";
 import DashProfile from "./pages/dashboard/dash-profile.tsx";
-import DashSettings from "./pages/dashboard/dash-settings.tsx";
 import DashHelp from "./pages/dashboard/dash-help.tsx";
 
 // Подключаем глобальные стили (включая директивы Tailwind)
@@ -37,13 +36,16 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                         <Route path="create" element={<DashCreate />} />
                         <Route path="projects/:id" element={<DashProject />} />
                         <Route
+                            path="projects/:id/edit"
+                            element={<DashCreate />}
+                        />
+                        <Route
                             path="projects/:id/capture"
                             element={<DashCapture />}
                         />
                         {/* Dashboard Pages */}
                         <Route path="gallery" element={<DashGallery />} />
                         <Route path="profile" element={<DashProfile />} />
-                        <Route path="settings" element={<DashSettings />} />
                         <Route path="help" element={<DashHelp />} />
                     </Route>
                 </Route>

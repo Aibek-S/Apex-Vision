@@ -7,6 +7,8 @@ import { Mail, Lock, ArrowLeft } from "lucide-react";
 export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [isMuseumStaff, setIsMuseumStaff] = useState(false);
+    const [museumCode, setMuseumCode] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
@@ -19,6 +21,15 @@ export default function LoginPage() {
         e.preventDefault();
         setLoading(true);
         setError(null);
+
+        const staffCode =
+            import.meta.env.VITE_MUSEUM_STAFF_CODE || "MUSEUM-2026";
+
+        if (isMuseumStaff && museumCode.trim() !== staffCode) {
+            setError("Неверный спец-код сотрудника музея");
+            setLoading(false);
+            return;
+        }
 
         const { error } = await supabase.auth.signInWithPassword({
             email,
@@ -86,6 +97,39 @@ export default function LoginPage() {
                                 />
                             </div>
                         </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-secondary/15 bg-white/70 p-4">
+                        <label className="flex items-center gap-3 text-sm text-textDark">
+                            <input
+                                type="checkbox"
+                                checked={isMuseumStaff}
+                                onChange={(e) =>
+                                    setIsMuseumStaff(e.target.checked)
+                                }
+                                className="h-4 w-4 accent-primary"
+                            />
+                            Вы из музея?
+                        </label>
+                        <p className="mt-2 text-xs text-secondary">
+                            Если вы сотрудник музея, включите переключатель и
+                            введите спец-код.
+                        </p>
+
+                        {isMuseumStaff && (
+                            <div className="mt-3 space-y-2">
+                                <input
+                                    type="password"
+                                    value={museumCode}
+                                    onChange={(e) =>
+                                        setMuseumCode(e.target.value)
+                                    }
+                                    placeholder="Секретный спец-код"
+                                    required
+                                    className="text-sm w-full h-11 px-4 bg-white/80 border border-secondary/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                                />
+                            </div>
+                        )}
                     </div>
 
                     {error && (
