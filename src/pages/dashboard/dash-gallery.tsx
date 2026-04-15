@@ -4,6 +4,7 @@ import { Loader2, Search, Filter, Users } from "lucide-react";
 import { Button } from "../../components/UI/button";
 import { ArtifactCard, type Artifact } from "../../components/UI/artifact_card";
 import { supabase } from "../../lib/supabase";
+import { useAuth } from "../../contexts/useAuth";
 
 type PublicArtifact = Artifact & {
     is_public?: boolean;
@@ -11,6 +12,7 @@ type PublicArtifact = Artifact & {
 
 export default function DashGallery() {
     const navigate = useNavigate();
+    const { isMuseumStaff, profileLoading } = useAuth();
     const [artifacts, setArtifacts] = useState<PublicArtifact[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -82,6 +84,39 @@ export default function DashGallery() {
                     </span>
                 </div>
             </header>
+
+            {!profileLoading && !isMuseumStaff && (
+                <div className="rounded-2xl border border-secondary/15 bg-white/80 p-4 shadow-sm lg:hidden">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p className="text-sm font-semibold text-textDark">
+                                Вы вошли как гость
+                            </p>
+                            <p className="mt-1 text-xs text-secondary">
+                                Зарегистрируйтесь или войдите, чтобы сохранять
+                                проекты и работать с полным функционалом.
+                            </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => navigate("/auth/register")}
+                            >
+                                Регистрация
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => navigate("/auth/login")}
+                            >
+                                Войти
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <section className="space-y-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-black/5 pb-6">

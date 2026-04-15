@@ -1,5 +1,6 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import type { NavItem } from "./navItems";
+import { Button } from "../UI/button";
 
 type SidebarNavProps = {
     items: NavItem[];
@@ -8,9 +9,12 @@ type SidebarNavProps = {
         name: string;
         email?: string;
     };
+    showGuestActions?: boolean;
 };
 
-export function SidebarNav({ items, avatar }: SidebarNavProps) {
+export function SidebarNav({ items, avatar, showGuestActions }: SidebarNavProps) {
+    const navigate = useNavigate();
+
     return (
         <aside className="hidden h-screen min-w-[260px] max-w-[300px] flex-col gap-10 border-r border-black/5 bg-white px-6 py-8 lg:flex">
             <div className="flex items-center gap-4 px-2">
@@ -60,6 +64,35 @@ export function SidebarNav({ items, avatar }: SidebarNavProps) {
                     </NavLink>
                 ))}
             </nav>
+
+            {showGuestActions && (
+                <div className="rounded-2xl border border-secondary/15 bg-backgroundLight/70 p-4 shadow-sm">
+                    <p className="text-sm font-semibold text-textDark">
+                        Вы вошли как гость
+                    </p>
+                    <p className="mt-1 text-xs text-secondary">
+                        Зарегистрируйтесь или войдите, чтобы сохранять проекты
+                        и работать с полным функционалом.
+                    </p>
+                    <div className="mt-4 flex flex-col gap-2">
+                        <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => navigate("/auth/register")}
+                        >
+                            Регистрация
+                        </Button>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => navigate("/auth/login")}
+                        >
+                            Войти
+                        </Button>
+                    </div>
+                </div>
+            )}
         </aside>
     );
 }

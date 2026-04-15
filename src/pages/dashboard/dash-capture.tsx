@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
     ArrowLeft,
     CheckCircle2,
+    CloudUpload,
+    ExternalLink,
     Loader2,
     RefreshCcw,
     ScanSearch,
@@ -10,6 +12,7 @@ import {
 import { Button } from "../../components/UI/button";
 import ObjModelViewer from "../../components/canvas/ObjModelViewer";
 import { useAuth } from "../../contexts/useAuth";
+import { supabase } from "../../lib/supabase";
 
 const WATCHER_RESULTS_PATH =
     "C:\\Users\\Acer\\Documents\\Apex\\FLL\\watcher_3d\\projects\\results";
@@ -18,6 +21,8 @@ const WATCHER_POLL_INTERVAL_MS = 1000;
 const WATCHER_DURATION_MS = 9000;
 const WATCHER_INTERVAL_MS = 300;
 const HtmlModelViewer = "model-viewer" as any;
+const LOCAL_STORAGE_ROOT =
+    "C:\\Users\\Acer\\Documents\\Apex\\FLL\\Local_Storage";
 
 export default function DashCapture() {
     const { id: artifactId } = useParams<{ id: string }>();
@@ -37,6 +42,11 @@ export default function DashCapture() {
     const [modelType, setModelType] = useState<string | null>(null);
     const [modelError, setModelError] = useState<string | null>(null);
     const [modelCode, setModelCode] = useState<string>("");
+    const [storedModelUrl, setStoredModelUrl] = useState<string | null>(null);
+    const [localUploadModalOpen, setLocalUploadModalOpen] = useState(false);
+    const [localFiles, setLocalFiles] = useState<File[]>([]);
+    const [localUploading, setLocalUploading] = useState(false);
+    const [localError, setLocalError] = useState<string | null>(null);
 
     const artifactName =
         (location.state as { artifactName?: string } | undefined)
@@ -45,17 +55,203 @@ export default function DashCapture() {
     useEffect(() => {
         if (!artifactId) return;
         const stored = window.localStorage.getItem(
-            `artifactModelCode:${artifactId}`
+            `artifactModelCode:${artifactId}`,
         );
         if (stored) {
             setModelCode(stored);
         }
     }, [artifactId]);
 
+    useEffect(() => {
+        if (!artifactId) return;
+        let isActive = true;
+        const loadArtifact = async () => {
+            const { data, error } = await supabase
+                .from("artifacts")
+                .select('"3d_url"')
+                .eq("id", artifactId)
+                .single();
+            if (!isActive) return;
+            if (!error && data?.["3d_url"]) {
+                const url = data["3d_url"];
+                if (isLocalModelUrl(url)) {
+                    setStoredModelUrl(toFsUrl(url));
+                } else {
+                    setStoredModelUrl(null);
+                }
+            }
+        };
+        void loadArtifact();
+        return () => {
+            isActive = false;
+        };
+    }, [artifactId]);
+
     const handleModelCodeChange = (value: string) => {
         setModelCode(value);
         if (!artifactId) return;
         window.localStorage.setItem(`artifactModelCode:${artifactId}`, value);
+    };
+
+    const getFileNameFromUrl = (url: string) => {
+        try {
+            const parsed = new URL(url, window.location.origin);
+            const parts = parsed.pathname.split("/");
+            return parts[parts.length - 1] || "model";
+        } catch {
+            return "model";
+        }
+    };
+
+    const getExtensionFromUrl = (url: string | null) => {
+        if (!url) return null;
+        try {
+            const parsed = new URL(url, window.location.origin);
+            const name = parsed.pathname.split("/").pop() || "";
+            const ext = name.split(".").pop();
+            return ext ? ext.toLowerCase() : null;
+        } catch {
+            return null;
+        }
+    };
+
+    const buildLocalPath = (fileName: string) =>
+        `${LOCAL_STORAGE_ROOT}\\${artifactId}\\${fileName}`;
+
+    const toFsUrl = (path: string) =>
+        path.startsWith("/@fs/")
+            ? path
+            : `/@fs/${path.replace(/\\/g, "/")}`;
+
+    const isLocalModelUrl = (url: string) =>
+        url.startsWith("/@fs/") || /^[a-zA-Z]:\\/.test(url);
+
+    const ensureProjectDirectory = async () => {
+        if (!("showDirectoryPicker" in window)) {
+            throw new Error(
+                "Ваш браузер не поддерживает доступ к локальным папкам. Используйте Chrome.",
+            );
+        }
+
+        const picker = window as typeof window & {
+            showDirectoryPicker: () => Promise<FileSystemDirectoryHandle>;
+        };
+        const baseHandle = await picker.showDirectoryPicker();
+        if (baseHandle.name !== "Local_Storage") {
+            throw new Error(
+                "Выберите папку Local_Storage по пути C:\\Users\\Acer\\Documents\\Apex\\FLL\\Local_Storage.",
+            );
+        }
+        return await baseHandle.getDirectoryHandle(artifactId, {
+            create: true,
+        });
+    };
+
+    const updateArtifact3dUrl = async (url: string | null) => {
+        if (!artifactId) return;
+        const { error } = await supabase
+            .from("artifacts")
+            .update({ "3d_url": url })
+            .eq("id", artifactId);
+        if (error) {
+            throw new Error(error.message);
+        }
+    };
+
+    const handleLocalFileUpload = async () => {
+        if (!localFiles.length || !artifactId) return;
+        setLocalError(null);
+        setLocalUploading(true);
+
+        try {
+            const modelFile =
+                localFiles.find((file) =>
+                    file.name.toLowerCase().endsWith(".obj"),
+                ) ??
+                localFiles.find((file) =>
+                    file.name.toLowerCase().endsWith(".glb"),
+                ) ??
+                localFiles.find((file) =>
+                    file.name.toLowerCase().endsWith(".gltf"),
+                ) ??
+                null;
+
+            if (!modelFile) {
+                throw new Error("Нужен файл модели (.obj, .glb или .gltf).");
+            }
+
+            const projectDir = await ensureProjectDirectory();
+            const imageFiles = localFiles.filter((file) =>
+                [".jpg", ".jpeg", ".png"].some((ext) =>
+                    file.name.toLowerCase().endsWith(ext),
+                ),
+            );
+            const imageByLower = new Map(
+                imageFiles.map((file) => [file.name.toLowerCase(), file.name]),
+            );
+
+            for (const file of localFiles) {
+                const fileHandle = await projectDir.getFileHandle(file.name, {
+                    create: true,
+                });
+                const writable = await fileHandle.createWritable();
+                if (file.name.toLowerCase().endsWith(".mtl")) {
+                    const rawText = await file.text();
+                    const sanitized = rawText.replace(/\u0000/g, "").trim();
+                    const rewritten = sanitized
+                        .split(/\r?\n/)
+                        .map((line) => {
+                            const parts = line.trim().split(/\s+/);
+                            if (parts.length < 2) return line;
+                            const key = parts[0].toLowerCase();
+                            const isTextureLine = [
+                                "map_kd",
+                                "map_ka",
+                                "map_ks",
+                                "map_ke",
+                                "map_ns",
+                                "map_d",
+                                "map_bump",
+                                "bump",
+                                "disp",
+                                "decal",
+                                "norm",
+                            ].includes(key);
+                            if (!isTextureLine) return line;
+
+                            const rawRef = parts[parts.length - 1];
+                            const baseName = rawRef.split(/[\\/]/).pop() ?? rawRef;
+                            const lower = baseName.toLowerCase();
+                            const resolved =
+                                imageByLower.get(lower) ??
+                                (imageFiles.length === 1
+                                    ? imageFiles[0].name
+                                    : baseName);
+                            return [...parts.slice(0, -1), resolved].join(" ");
+                        })
+                        .join("\n");
+                    await writable.write(rewritten);
+                } else {
+                    await writable.write(file);
+                }
+                await writable.close();
+            }
+
+            const localPath = buildLocalPath(modelFile.name);
+            const localUrl = toFsUrl(localPath);
+            setStoredModelUrl(localUrl);
+            await updateArtifact3dUrl(localUrl);
+            setLocalUploadModalOpen(false);
+            setLocalFiles([]);
+        } catch (error) {
+            setLocalError(
+                error instanceof Error
+                    ? error.message
+                    : "Не удалось сохранить файл локально.",
+            );
+        } finally {
+            setLocalUploading(false);
+        }
     };
 
     if (!artifactId) {
@@ -98,7 +294,7 @@ export default function DashCapture() {
                     setDeviceError(
                         error instanceof Error
                             ? error.message
-                            : "Нет доступа к камере."
+                            : "Нет доступа к камере.",
                     );
                     return;
                 }
@@ -108,7 +304,7 @@ export default function DashCapture() {
             const hasCamera = devices.some(
                 (device) =>
                     device.kind === "videoinput" &&
-                    device.label?.toLowerCase().includes("shining-uvc")
+                    device.label?.toLowerCase().includes("shining-uvc"),
             );
 
             setDeviceStatus(hasCamera ? "found" : "not_found");
@@ -117,7 +313,7 @@ export default function DashCapture() {
             setDeviceError(
                 error instanceof Error
                     ? error.message
-                    : "Не удалось получить список устройств."
+                    : "Не удалось получить список устройств.",
             );
         }
     };
@@ -150,7 +346,7 @@ export default function DashCapture() {
             tick += 1;
             const nextProgress = Math.min(
                 100,
-                Math.round((tick / totalTicks) * 100)
+                Math.round((tick / totalTicks) * 100),
             );
             setProgress(nextProgress);
             if (tick >= totalTicks) {
@@ -172,7 +368,7 @@ export default function DashCapture() {
                 const trimmedCode = modelCode.trim();
                 const requestUrl = trimmedCode
                     ? `${WATCHER_API_URL}?code=${encodeURIComponent(
-                          trimmedCode
+                          trimmedCode,
                       )}`
                     : WATCHER_API_URL;
                 const response = await fetch(requestUrl, {
@@ -203,7 +399,7 @@ export default function DashCapture() {
                     setModelError(
                         error instanceof Error
                             ? error.message
-                            : "Не удалось проверить папку результатов."
+                            : "Не удалось проверить папку результатов.",
                     );
                 }
             }
@@ -217,6 +413,7 @@ export default function DashCapture() {
             window.clearInterval(interval);
         };
     }, [watcherStatus, modelCode]);
+
 
     useEffect(() => {
         if (deviceStatus !== "searching") return;
@@ -235,7 +432,7 @@ export default function DashCapture() {
                 const hasCamera = devices.some(
                     (device) =>
                         device.kind === "videoinput" &&
-                        device.label?.toLowerCase().includes("shining-uvc")
+                        device.label?.toLowerCase().includes("shining-uvc"),
                 );
                 if (isActive) {
                     setDeviceStatus(hasCamera ? "found" : "searching");
@@ -246,7 +443,7 @@ export default function DashCapture() {
                     setDeviceError(
                         error instanceof Error
                             ? error.message
-                            : "Не удалось получить список устройств."
+                            : "Не удалось получить список устройств.",
                     );
                 }
             }
@@ -260,6 +457,17 @@ export default function DashCapture() {
             window.clearInterval(interval);
         };
     }, [deviceStatus]);
+
+    const previewUrl = storedModelUrl ?? modelUrl;
+    const previewType = previewUrl
+        ? getExtensionFromUrl(previewUrl) ?? modelType
+        : modelType;
+    const previewMaterialUrl =
+        previewType === "obj"
+            ? previewUrl === modelUrl
+                ? materialUrl
+                : previewUrl?.replace(/\.obj$/i, ".mtl") ?? null
+            : null;
 
     return (
         <div className="space-y-8">
@@ -312,16 +520,16 @@ export default function DashCapture() {
                                     deviceStatus === "found"
                                         ? "primary"
                                         : deviceStatus === "not_found"
-                                        ? "destructive"
-                                        : "outline"
+                                          ? "destructive"
+                                          : "outline"
                                 }
                                 onClick={handleFindDevice}
                                 className={
                                     deviceStatus === "found"
                                         ? "bg-green-600 hover:bg-green-700 text-white border-none"
                                         : deviceStatus === "not_found"
-                                        ? "bg-red-600 hover:bg-red-700 text-white border-none"
-                                        : ""
+                                          ? "bg-red-600 hover:bg-red-700 text-white border-none"
+                                          : ""
                                 }
                                 disabled={deviceStatus === "searching"}
                                 iconLeft={
@@ -335,10 +543,10 @@ export default function DashCapture() {
                                 {deviceStatus === "found"
                                     ? "Устройство найдено"
                                     : deviceStatus === "searching"
-                                    ? "Поиск..."
-                                    : deviceStatus === "not_found"
-                                    ? "Повторить поиск"
-                                    : "Найти устройство"}
+                                      ? "Поиск..."
+                                      : deviceStatus === "not_found"
+                                        ? "Повторить поиск"
+                                        : "Найти устройство"}
                             </Button>
                         </div>
                         <div
@@ -346,8 +554,8 @@ export default function DashCapture() {
                                 deviceStatus === "found"
                                     ? "border-green-500/30 bg-green-500/5 text-green-700"
                                     : deviceStatus === "not_found"
-                                    ? "border-red-500/30 bg-red-500/5 text-red-700"
-                                    : "border-primary/30 bg-primary/5 text-secondary"
+                                      ? "border-red-500/30 bg-red-500/5 text-red-700"
+                                      : "border-primary/30 bg-primary/5 text-secondary"
                             }`}
                         >
                             {deviceStatus === "found" &&
@@ -426,7 +634,7 @@ export default function DashCapture() {
                                     value={modelCode}
                                     onChange={(event) =>
                                         handleModelCodeChange(
-                                            event.target.value
+                                            event.target.value,
                                         )
                                     }
                                     placeholder='Например, "8123"'
@@ -476,8 +684,8 @@ export default function DashCapture() {
                         )}
 
                         {watcherStatus === "done" &&
-                            modelUrl &&
-                            modelType === "obj" && (
+                            previewUrl &&
+                            previewType === "obj" && (
                                 <div className="space-y-3">
                                     <div className="flex items-center gap-2 text-xs text-primary font-semibold">
                                         <CheckCircle2 className="w-4 h-4" />
@@ -485,8 +693,8 @@ export default function DashCapture() {
                                     </div>
                                     <div className="rounded-2xl border border-black/10 bg-white/80 p-3">
                                         <ObjModelViewer
-                                            objUrl={modelUrl}
-                                            mtlUrl={materialUrl}
+                                            objUrl={previewUrl}
+                                            mtlUrl={previewMaterialUrl}
                                             height={320}
                                         />
                                     </div>
@@ -497,9 +705,9 @@ export default function DashCapture() {
                                 </div>
                             )}
                         {watcherStatus === "done" &&
-                            modelUrl &&
-                            modelType &&
-                            modelType !== "obj" && (
+                            previewUrl &&
+                            previewType &&
+                            previewType !== "obj" && (
                                 <div className="space-y-3">
                                     <div className="flex items-center gap-2 text-xs text-primary font-semibold">
                                         <CheckCircle2 className="w-4 h-4" />
@@ -507,7 +715,7 @@ export default function DashCapture() {
                                     </div>
                                     <div className="rounded-2xl border border-black/10 bg-white/80 p-3">
                                         <HtmlModelViewer
-                                            src={modelUrl}
+                                            src={previewUrl}
                                             alt="Artifact 3D preview"
                                             camera-controls
                                             autoplay
@@ -525,7 +733,7 @@ export default function DashCapture() {
                                     </div>
                                 </div>
                             )}
-                        {watcherStatus === "done" && !modelUrl && (
+                        {watcherStatus === "done" && !previewUrl && (
                             <div className="text-xs text-secondary">
                                 Модель не найдена. Проверьте папку результатов.
                             </div>
@@ -555,24 +763,145 @@ export default function DashCapture() {
                                 устройства и ожидание результата.
                             </p>
                             <div className="rounded-2xl border border-black/5 bg-background/80 p-3 text-xs text-secondary/80">
-                                Поддерживаемые форматы: .obj, .glb, .gltf
+                                Поддерживаемые форматы: .obj, .mtl, .png, .jpg, .jpeg, .glb, .gltf
                             </div>
                         </div>
                     </div>
 
-                    <div className="rounded-3xl border border-dashed border-primary/30 bg-primary/5 p-5 text-sm text-secondary space-y-2">
-                        <div className="flex items-center gap-2 text-primary font-semibold">
-                            <CheckCircle2 className="w-4 h-4" />
-                            Интеграция watcher
+                    <div className="rounded-3xl border border-white/60 bg-white/80 p-6 shadow-sm space-y-4">
+                        <div>
+                            <p className="text-xs uppercase tracking-[0.3em] text-secondary">
+                                Локальное хранение
+                            </p>
+                            <div className="mt-2 rounded-2xl border border-black/5 bg-background/80 p-3 text-xs text-secondary/80">
+                                Файлы модели сохраняются в C:\\Users\\Acer\\Documents\\Apex\\FLL\\Local_Storage\\{artifactId} и доступны через /@fs.
+                            </div>
                         </div>
-                        <p>
-                            Заглушка для будущей интеграции с программой
-                            обработки. На проде watcher будет следить за
-                            указанной папкой и автоматически обновлять превью.
-                        </p>
+
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setLocalUploadModalOpen(true)}
+                            >
+                                Выбрать файлы
+                            </Button>
+                        </div>
+
+                        {storedModelUrl ? (
+                            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3 text-xs text-emerald-700 space-y-2">
+                                <div className="flex items-center gap-2 font-semibold">
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    Модель сохранена локально
+                                </div>
+                                <div className="truncate text-[11px] text-emerald-700/80">
+                                    {storedModelUrl}
+                                </div>
+                                <a
+                                    href={storedModelUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-2 text-[11px] text-emerald-700 hover:underline"
+                                >
+                                    Открыть ссылку
+                                    <ExternalLink className="w-3 h-3" />
+                                </a>
+                            </div>
+                        ) : (
+                            <div className="rounded-2xl border border-black/5 bg-background/80 p-3 text-xs text-secondary/80">
+                                Ссылка на 3D-модель еще не сохранена.
+                            </div>
+                        )}
+
+                        {localError && (
+                            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                                {localError}
+                            </div>
+                        )}
                     </div>
                 </div>
             </section>
+
+            {localUploadModalOpen && (
+                <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
+                    <div className="w-full max-w-md rounded-2xl border border-black/10 bg-white p-6 shadow-lg space-y-4">
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.3em] text-secondary">
+                                    Загрузка 3D файла
+                                </p>
+                                <p className="text-sm font-semibold text-textDark">
+                                    Выберите файлы для локального хранения
+                                </p>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                    setLocalUploadModalOpen(false);
+                                    setLocalFiles([]);
+                                    setLocalError(null);
+                                }}
+                            >
+                                Закрыть
+                            </Button>
+                        </div>
+
+                        <div className="space-y-2">
+                            <input
+                                type="file"
+                                multiple
+                                accept=".obj,.mtl,.png,.jpg,.jpeg,.glb,.gltf"
+                                onChange={(event) =>
+                                    setLocalFiles(
+                                        Array.from(event.target.files ?? []),
+                                    )
+                                }
+                                className="w-full rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm text-textDark"
+                            />
+                            <p className="text-xs text-secondary/70">
+                                Поддерживаемые форматы: .obj, .mtl, .png, .jpg, .jpeg, .glb, .gltf
+                            </p>
+                        </div>
+
+                        {localError && (
+                            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                                {localError}
+                            </div>
+                        )}
+
+                        <div className="flex items-center justify-end gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    setLocalUploadModalOpen(false);
+                                    setLocalFiles([]);
+                                    setLocalError(null);
+                                }}
+                            >
+                                Отмена
+                            </Button>
+                            <Button
+                                size="sm"
+                                onClick={handleLocalFileUpload}
+                                disabled={!localFiles.length || localUploading}
+                                iconLeft={
+                                    localUploading ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <CloudUpload className="w-4 h-4" />
+                                    )
+                                }
+                            >
+                                {localUploading ? "Загрузка..." : "Загрузить"}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
+

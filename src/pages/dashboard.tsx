@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { useAuth } from "../contexts/useAuth";
 import { BottomTabs } from "../components/navigation/BottomTabs";
 import { SidebarNav } from "../components/navigation/SidebarNav";
@@ -7,8 +7,7 @@ import { navItems } from "../components/navigation/navItems";
 import ArchaeologistChat from "../components/ArchaeologistChat";
 
 export default function Dashboard() {
-    const { user, isMuseumStaff, profileLoading } = useAuth();
-    const location = useLocation();
+    const { user, isMuseumStaff, isGuest, profileLoading } = useAuth();
 
     const displayName = useMemo(() => {
         if (user?.user_metadata?.full_name) {
@@ -39,14 +38,19 @@ export default function Dashboard() {
         return "ИИ";
     }, [user]);
 
-    const allowedNavItems = isMuseumStaff
-        ? navItems
-        : navItems.filter((item) => item.id === "gallery");
+    const allowedNavItems = navItems.filter((item) => {
+        if (isGuest) return item.id === "gallery";
+        if (isMuseumStaff) return item.id !== "request";
+        return item.id !== "create" && item.id !== "inbox";
+    });
+    const mobileNavIds = isGuest
+        ? ["gallery"]
+        : isMuseumStaff
+          ? ["home", "inbox", "create", "profile"]
+          : ["home", "request", "gallery", "profile"];
     const mobileNav = allowedNavItems.filter((item) =>
-        ["home", "gallery", "create", "profile"].includes(item.id)
+        mobileNavIds.includes(item.id),
     );
-
-    const isGalleryRoute = location.pathname.startsWith("/dashboard/gallery");
 
     if (profileLoading) {
         return (
@@ -56,15 +60,13 @@ export default function Dashboard() {
         );
     }
 
-    // Обычным пользователям доступна только галерея.
-    if (!isMuseumStaff && !isGalleryRoute) {
-        return <Navigate to="/dashboard/gallery" replace />;
-    }
+    // Обычным пользователям недоступно только создание.
 
     return (
         <div className="flex min-h-screen flex-col bg-white text-textDark lg:flex-row">
             <SidebarNav
                 items={allowedNavItems}
+                showGuestActions={isGuest}
                 avatar={{
                     initials: avatarInitials,
                     name: displayName,

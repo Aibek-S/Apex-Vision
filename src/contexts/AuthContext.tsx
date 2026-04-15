@@ -95,6 +95,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }, []);
 
     const signOut = async () => {
+        if (user?.id && typeof window !== "undefined") {
+            localStorage.removeItem(`museum_staff_verified_${user.id}`);
+        }
         await supabase.auth.signOut();
     };
 
@@ -124,9 +127,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
     };
 
-    // Локальный хост получает права сотрудника для удобства разработки.
+    const staffVerified = Boolean(
+        user &&
+            typeof window !== "undefined" &&
+            localStorage.getItem(`museum_staff_verified_${user.id}`) === "true"
+    );
+
+    // На локалхосте доступ разрешён только сотрудникам музея.
     const isMuseumStaff = Boolean(
-        user && (profile?.role === "museum" || isLocalHost)
+        user && profile?.role === "museum" && (isLocalHost || staffVerified)
     );
     const isGuest = Boolean(profile?.is_guest);
 

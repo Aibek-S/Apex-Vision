@@ -5,6 +5,7 @@ import {
     User,
     HelpCircle,
     PlusSquare,
+    FileText,
 } from "lucide-react";
 
 export type NavItem = {
@@ -22,6 +23,13 @@ export const navItems: NavItem[] = [
         to: "/dashboard/home",
         description: "Рабочее пространство",
         icon: <LayoutDashboard className="w-5 h-5" />,
+    },
+    {
+        id: "request",
+        label: "Заявка",
+        to: "/dashboard/request",
+        description: "Отправить свой артефакт",
+        icon: <FileText className="w-5 h-5" />,
     },
     {
         id: "gallery",

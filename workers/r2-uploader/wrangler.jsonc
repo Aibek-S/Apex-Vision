@@ -1,0 +1,16 @@
+{
+    "$schema": "https://developers.cloudflare.com/wrangler/config-schema.json",
+    "name": "apex-r2-uploader",
+    "main": "src/index.ts",
+    "compatibility_date": "2025-01-01",
+    "r2_buckets": [
+        {
+            "binding": "R2_BUCKET",
+            "bucket_name": "fll",
+        },
+    ],
+    "vars": {
+        "PUBLIC_BASE_URL": "https://apex-r2-uploader.apexcloudr3.workers.dev",
+        "ALLOWED_ORIGIN": "*",
+    },
+}

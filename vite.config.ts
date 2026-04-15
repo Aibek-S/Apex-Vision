@@ -7,6 +7,8 @@ import path from "node:path";
 
 const RESULTS_DIR =
     "C:/Users/Acer/Documents/Apex/FLL/watcher_3d/projects/results";
+const LOCAL_STORAGE_DIR =
+    "C:/Users/Acer/Documents/Apex/FLL/Local_Storage";
 const PROJECT_ROOT = process.cwd();
 
 type LatestModelResult = {
@@ -174,7 +176,7 @@ export default defineConfig({
     server: {
         allowedHosts: ["66c956facc19.ngrok-free.app"],
         fs: {
-            allow: [PROJECT_ROOT, RESULTS_DIR],
+            allow: [PROJECT_ROOT, RESULTS_DIR, LOCAL_STORAGE_DIR],
         },
     },
 });

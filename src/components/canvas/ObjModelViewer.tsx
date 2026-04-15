@@ -58,11 +58,15 @@ const ObjModel = ({
             const objLoader = new OBJLoader();
 
             if (mtlUrl) {
-                const mtlLoader = new MTLLoader();
-                mtlLoader.setResourcePath(getBasePath(mtlUrl));
-                const materials = await mtlLoader.loadAsync(mtlUrl);
-                materials.preload();
-                objLoader.setMaterials(materials);
+                try {
+                    const mtlLoader = new MTLLoader();
+                    mtlLoader.setResourcePath(getBasePath(mtlUrl));
+                    const materials = await mtlLoader.loadAsync(mtlUrl);
+                    materials.preload();
+                    objLoader.setMaterials(materials);
+                } catch {
+                    // If MTL is missing, fall back to loading OBJ without materials.
+                }
             }
 
             const obj = await objLoader.loadAsync(objUrl);

@@ -31,7 +31,7 @@ export default function LoginPage() {
             return;
         }
 
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
         });
@@ -39,9 +39,49 @@ export default function LoginPage() {
         if (error) {
             setError(error.message);
             setLoading(false);
-        } else {
-            navigate(from, { replace: true });
+            return;
         }
+
+        const userId = data.user?.id;
+        if (!userId) {
+            setError("Не удалось получить данные пользователя");
+            setLoading(false);
+            return;
+        }
+
+        const { data: profileData, error: profileError } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", userId)
+            .maybeSingle();
+
+        if (profileError) {
+            await supabase.auth.signOut();
+            setError(profileError.message);
+            setLoading(false);
+            return;
+        }
+
+        const isMuseumRole = profileData?.role === "museum";
+        if (isMuseumRole && (!isMuseumStaff || museumCode.trim() !== staffCode)) {
+            await supabase.auth.signOut();
+            setError(
+                "Для сотрудников музея нужно включить переключатель и ввести спец-код"
+            );
+            setLoading(false);
+            return;
+        }
+
+        if (isMuseumRole && isMuseumStaff) {
+            localStorage.setItem(
+                `museum_staff_verified_${userId}`,
+                "true"
+            );
+        } else {
+            localStorage.removeItem(`museum_staff_verified_${userId}`);
+        }
+
+        navigate(from, { replace: true });
     };
 
     return (

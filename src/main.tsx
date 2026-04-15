@@ -9,10 +9,14 @@ import Dashboard from "./pages/dashboard.tsx";
 import DashMain from "./pages/dashboard/dash-main.tsx";
 import DashProject from "./pages/dashboard/dash-project.tsx";
 import DashCreate from "./pages/dashboard/dash-create.tsx";
+import DashEdit from "./pages/dashboard/dash-edit.tsx";
 import DashCapture from "./pages/dashboard/dash-capture.tsx";
 import DashGallery from "./pages/dashboard/dash-gallery.tsx";
 import DashProfile from "./pages/dashboard/dash-profile.tsx";
 import DashHelp from "./pages/dashboard/dash-help.tsx";
+import DashRequest from "./pages/dashboard/dash-request.tsx";
+import DashInbox from "./pages/dashboard/dash-inbox.tsx";
+import DashInboxDetail from "./pages/dashboard/dash-inbox-detail.tsx";
 
 // Подключаем глобальные стили (включая директивы Tailwind)
 import "./index.css";
@@ -33,11 +37,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                     <Route path="/dashboard" element={<Dashboard />}>
                         <Route index element={<Navigate to="home" replace />} />
                         <Route path="home" element={<DashMain />} />
+                        <Route path="inbox" element={<DashInbox />} />
+                        <Route path="inbox/:id" element={<DashInboxDetail />} />
+                        <Route path="request" element={<DashRequest />} />
                         <Route path="create" element={<DashCreate />} />
                         <Route path="projects/:id" element={<DashProject />} />
                         <Route
                             path="projects/:id/edit"
-                            element={<DashCreate />}
+                            element={<DashEdit />}
                         />
                         <Route
                             path="projects/:id/capture"
@@ -52,5 +59,5 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             </Routes>
         </BrowserRouter>
         <Analytics />
-    </AuthProvider>
+    </AuthProvider>,
 );

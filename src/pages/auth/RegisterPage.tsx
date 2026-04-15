@@ -67,6 +67,13 @@ export default function RegisterPage() {
                 setLoading(false);
                 return;
             }
+
+            if (role === "museum") {
+                localStorage.setItem(
+                    `museum_staff_verified_${data.user.id}`,
+                    "true"
+                );
+            }
         }
 
         setSuccess(true);
