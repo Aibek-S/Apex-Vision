@@ -1,27 +1,99 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { useChat } from "ai/react";
 import { MessageCircle, X, Send, Library, Loader2 } from "lucide-react";
 
-const CHAT_API_URL =
-    import.meta.env.VITE_CHAT_API_URL || "http://localhost:3001/api/chat";
+type ChatMessage = {
+    id: string;
+    role: "user" | "assistant";
+    content: string;
+};
+
+const GEMINI_API_KEY = "***REDACTED***";
+const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+
+const SYSTEM_PROMPT =
+    "Ты — бот «Археолог», эксперт по археологическим предметам. Отвечай только на русском языке. Помогай атрибутировать предметы, описывать исторический контекст, материал и технику.";
+
+const makeId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 export default function ArchaeologistChat() {
     const [isOpen, setIsOpen] = useState(false);
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const { id: projectId } = useParams<{ id: string }>();
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [input, setInput] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<Error | null>(null);
 
-    const {
-        messages,
-        input,
-        setInput,
-        handleInputChange,
-        handleSubmit,
-        isLoading,
-        error,
-    } = useChat({
-        api: CHAT_API_URL,
-    });
+    const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setInput(event.target.value);
+    };
+
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const userText = input.trim();
+        if (!userText || isLoading) return;
+
+        const nextUserMessage: ChatMessage = {
+            id: makeId(),
+            role: "user",
+            content: userText,
+        };
+
+        const nextMessages = [...messages, nextUserMessage];
+        setMessages(nextMessages);
+        setInput("");
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const contents = nextMessages.map((message) => ({
+                role: message.role === "assistant" ? "model" : "user",
+                parts: [{ text: message.content }],
+            }));
+
+            const response = await fetch(GEMINI_ENDPOINT, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    system_instruction: {
+                        parts: [{ text: SYSTEM_PROMPT }],
+                    },
+                    contents,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Ошибка Gemini API.");
+            }
+
+            const payload = (await response.json()) as {
+                candidates?: Array<{
+                    content?: { parts?: Array<{ text?: string }> };
+                }>;
+            };
+
+            const assistantText =
+                payload.candidates?.[0]?.content?.parts
+                    ?.map((part) => part.text ?? "")
+                    .join("")
+                    .trim() || "Не удалось получить ответ от модели.";
+
+            setMessages((prev) => [
+                ...prev,
+                { id: makeId(), role: "assistant", content: assistantText },
+            ]);
+        } catch (err) {
+            setError(
+                err instanceof Error
+                    ? err
+                    : new Error("Произошла ошибка при обращении к Gemini."),
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const handleInsertProjectId = () => {
         if (!projectId) return;

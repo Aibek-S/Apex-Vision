@@ -66,8 +66,6 @@ export default function DashMain() {
     const handleCreate = () => navigate("/dashboard/create");
     const handleOpenProject = (project: ProjectRecord) =>
         navigate(`/dashboard/projects/${project.id}`);
-    const handleStartCapture = (project: ProjectRecord) =>
-        navigate(`/dashboard/projects/${project.id}/capture`);
 
     return (
         <div className="flex flex-col gap-8 pb-10">
@@ -171,11 +169,6 @@ export default function DashMain() {
                                 key={project.id}
                                 artifact={project}
                                 onClick={handleOpenProject}
-                                onCapture={(artifact) =>
-                                    handleStartCapture(
-                                        artifact as ProjectRecord
-                                    )
-                                }
                             />
                         ))}
                     </div>

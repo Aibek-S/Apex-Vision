@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import JSZip from "jszip";
 import { Button } from "../../components/UI/button";
 import ModelViewer, {
     type ModelViewerHandle,
@@ -14,9 +13,29 @@ import { useAuth } from "../../contexts/useAuth";
 import { uploadArtifactImage } from "../../services/storageService";
 
 const PHOTO_BUCKET = "artifacts-images";
-const AI_ENDPOINT = "https://yedilov-apex-ai.hf.space/analyze_and_verify";
-const AI_QUERY =
-    "?material_threshold=0.7&epoch_threshold=0.7&classifier_timeout=60";
+const GEMINI_API_KEY = "***REDACTED***";
+const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+const AI_CLASSIFY_PROMPT = `
+Ты эксперт по археологическим артефактам.
+Проанализируй переданные изображения артефакта.
+Верни строго JSON-объект без markdown, без пояснений и без лишних полей.
+Формат ответа:
+{
+  "dating": string | null,
+  "place_of_creation": string | null,
+  "material": string | null,
+  "technique": string | null,
+  "quantity": number | null,
+  "subject": string | null,
+  "legend": string | null,
+  "bibliography": string | null,
+  "report_author": string | null,
+  "condition_description": string | null,
+  "restoration_details": string | null
+}
+Если значение неизвестно, верни null.
+`.trim();
 
 type MeasurementForm = {
     name: string;
@@ -127,6 +146,51 @@ const inferModelTypeFromUrl = (url: string | null) => {
 
 const buildMtlUrl = (url: string | null) =>
     url ? url.replace(/\.obj$/i, ".mtl") : null;
+
+const getFileNameFromSource = (source: string, fallback = "artifact-photo.jpg") => {
+    const value = source.trim();
+    if (!value) return fallback;
+    const cleaned = value.split("?")[0].split("#")[0];
+    const parts = cleaned.split("/");
+    const candidate = parts[parts.length - 1];
+    return candidate && candidate.trim() ? candidate : fallback;
+};
+
+const toBase64 = (bytes: Uint8Array) => {
+    let binary = "";
+    const chunkSize = 0x8000;
+    for (let index = 0; index < bytes.length; index += chunkSize) {
+        const chunk = bytes.subarray(index, index + chunkSize);
+        binary += String.fromCharCode(...chunk);
+    }
+    return btoa(binary);
+};
+
+const fileToInlineData = async (file: File) => {
+    const buffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    return {
+        mimeType: file.type || "image/jpeg",
+        data: toBase64(bytes),
+    };
+};
+
+const parseJsonFromModelText = (text: string) => {
+    const trimmed = text.trim();
+    const withoutFence = trimmed
+        .replace(/^```json\s*/i, "")
+        .replace(/^```\s*/i, "")
+        .replace(/\s*```$/, "");
+    const start = withoutFence.indexOf("{");
+    const end = withoutFence.lastIndexOf("}");
+    if (start < 0 || end < 0 || end <= start) {
+        throw new Error("Модель вернула ответ не в формате JSON.");
+    }
+    return JSON.parse(withoutFence.slice(start, end + 1)) as Record<
+        string,
+        unknown
+    >;
+};
 
 export default function DashEdit() {
     const navigate = useNavigate();
@@ -518,17 +582,32 @@ export default function DashEdit() {
         return screenshots;
     };
 
-    const buildScreenshotsZip = async (screenshots?: File[]) => {
-        const files = screenshots ?? (await captureAiScreenshots());
-        const zip = new JSZip();
-        files.forEach((file, index) => {
-            zip.file(`view-${index + 1}.jpg`, file);
+    const captureAiScreenshots2d = async () => {
+        const source = form.photoUrl.trim();
+        const previewUrl = photoPreview ?? (await resolvePreviewUrl(source || null));
+
+        if (!previewUrl) {
+            throw new Error("Сначала загрузите фото артефакта.");
+        }
+
+        const response = await fetch(previewUrl, { cache: "no-store" });
+        if (!response.ok) {
+            throw new Error("Не удалось получить фото для AI-классификации.");
+        }
+
+        const blob = await response.blob();
+        const fileName = getFileNameFromSource(source || previewUrl);
+        const imageFile = new File([blob], fileName, {
+            type: blob.type || "image/jpeg",
         });
 
-        return zip.generateAsync({ type: "blob" });
+        return [imageFile];
     };
 
-    const handleAiClassify = async () => {
+    const prepareAiPreview = async (
+        getFiles: () => Promise<File[]>,
+        fallbackError: string,
+    ) => {
         if (!isEditMode) {
             setAiError("Сначала сохраните карточку артефакта.");
             return;
@@ -543,7 +622,7 @@ export default function DashEdit() {
         setAiPreviewUrls([]);
 
         try {
-            const screenshots = await captureAiScreenshots();
+            const screenshots = await getFiles();
             const urls = screenshots.map((file) => URL.createObjectURL(file));
             setAiPreviewFiles(screenshots);
             setAiPreviewUrls(urls);
@@ -552,12 +631,24 @@ export default function DashEdit() {
             setAiError(
                 error instanceof Error
                     ? error.message
-                    : "Не удалось создать скриншоты.",
+                    : fallbackError,
             );
         } finally {
             setAiPreparing(false);
         }
     };
+
+    const handleAiClassify = async () =>
+        prepareAiPreview(
+            captureAiScreenshots,
+            "Не удалось создать скриншоты 3D-модели.",
+        );
+
+    const handleAiClassify2d = async () =>
+        prepareAiPreview(
+            captureAiScreenshots2d,
+            "Не удалось подготовить фото артефакта.",
+        );
 
     const handleAiConfirm = async () => {
         if (!aiPreviewFiles.length) {
@@ -572,33 +663,56 @@ export default function DashEdit() {
         setAiBaseline(getAiBaseline());
 
         try {
-            const zipBlob = await buildScreenshotsZip(aiPreviewFiles);
-            const formData = new FormData();
-            formData.append(
-                "images_zip",
-                new File([zipBlob], `model-screenshots.zip`, {
-                    type: "application/x-zip-compressed",
-                }),
+            const imageParts = await Promise.all(
+                aiPreviewFiles.map(async (file) => ({
+                    inlineData: await fileToInlineData(file),
+                })),
             );
-
-            const response = await fetch(`${AI_ENDPOINT}${AI_QUERY}`, {
+            const response = await fetch(GEMINI_ENDPOINT, {
                 method: "POST",
-                body: formData,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    generationConfig: {
+                        temperature: 0.1,
+                        responseMimeType: "application/json",
+                    },
+                    contents: [
+                        {
+                            role: "user",
+                            parts: [{ text: AI_CLASSIFY_PROMPT }, ...imageParts],
+                        },
+                    ],
+                }),
             });
 
             if (!response.ok) {
-                throw new Error("Ошибка при обращении к APEX-AI.");
+                throw new Error("Ошибка при обращении к Gemini API.");
             }
 
             const payload = (await response.json()) as {
-                gemini_data?: Record<string, unknown>;
-                supabase_data?: Record<string, unknown>;
+                candidates?: Array<{
+                    content?: {
+                        parts?: Array<{
+                            text?: string;
+                        }>;
+                    };
+                }>;
             };
 
-            const geminiData = payload.gemini_data ?? {};
-            const supabaseData = payload.supabase_data ?? {};
-            const getAiValue = (key: string) =>
-                geminiData[key] ?? supabaseData[key] ?? null;
+            const modelText =
+                payload.candidates?.[0]?.content?.parts
+                    ?.map((part) => part.text ?? "")
+                    .join("")
+                    .trim() ?? "";
+
+            if (!modelText) {
+                throw new Error("Gemini не вернул данные классификации.");
+            }
+
+            const responseJson = parseJsonFromModelText(modelText);
+            const getAiValue = (key: string) => responseJson[key] ?? null;
 
             const suggestions: Partial<AiMeasurement> = {
                 dating: getAiValue("dating") as string | null,
@@ -627,7 +741,7 @@ export default function DashEdit() {
             setAiError(
                 error instanceof Error
                     ? error.message
-                    : "Не удалось получить данные APEX-AI.",
+                    : "Не удалось получить данные Gemini.",
             );
         } finally {
             setAiLoading(false);
@@ -878,29 +992,49 @@ export default function DashEdit() {
                                     APEX-AI
                                 </p>
                                 <h2 className="text-lg font-semibold text-textDark">
-                                    Классификация по 3D-модели
+                                    Классификация по 3D-модели и фото
                                 </h2>
                             </div>
-                            <Button
-                                type="button"
-                                variant="primary"
-                                size="sm"
-                                onClick={handleAiClassify}
-                                disabled={
-                                    aiLoading || aiPreparing || !modelReady
-                                }
-                            >
-                                {aiLoading
-                                    ? "Отправка..."
-                                    : aiPreparing
-                                      ? "Подготовка..."
-                                      : "Запустить APEX-AI"}
-                            </Button>
+                            <div className="flex flex-wrap gap-2">
+                                <Button
+                                    type="button"
+                                    variant="primary"
+                                    size="sm"
+                                    onClick={handleAiClassify}
+                                    disabled={
+                                        aiLoading || aiPreparing || !modelReady
+                                    }
+                                >
+                                    {aiLoading
+                                        ? "Отправка..."
+                                        : aiPreparing
+                                          ? "Подготовка..."
+                                          : "AI по 3D-модели"}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleAiClassify2d}
+                                    disabled={
+                                        aiLoading ||
+                                        aiPreparing ||
+                                        (!photoPreview &&
+                                            !form.photoUrl.trim())
+                                    }
+                                >
+                                    {aiLoading
+                                        ? "Отправка..."
+                                        : aiPreparing
+                                          ? "Подготовка..."
+                                          : "AI по фото"}
+                                </Button>
+                            </div>
                         </div>
                         <p className="text-sm text-secondary/80">
-                            APEX-AI анализирует скриншоты 3D-модели с разных
-                            ракурсов. Проверьте предложенные значения перед
-                            сохранением.
+                            Можно запустить анализ либо по скриншотам 3D-модели
+                            с разных ракурсов, либо по фото из заставки
+                            артефакта.
                         </p>
 
                         {!modelReady && (

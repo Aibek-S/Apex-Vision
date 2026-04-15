@@ -118,6 +118,7 @@ export default function DashRequest() {
         const fetchMuseums = async () => {
             setMuseumsLoading(true);
             setMuseumsError(null);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const { data, error } = await (supabase as any)
                 .from("museums")
                 .select("id,name")
@@ -266,6 +267,7 @@ export default function DashRequest() {
                 museum_id: museumId,
             };
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const { error } = await (supabase as any)
                 .from("findings")
                 .insert(payload);

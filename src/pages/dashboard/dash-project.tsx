@@ -217,12 +217,6 @@ export default function DashProject() {
         : "—";
 
     const handleBack = () => navigate(-1);
-    const handleCapture = () => {
-        if (!projectId) return;
-        navigate(`/dashboard/projects/${projectId}/capture`, {
-            state: { artifactName: project?.name },
-        });
-    };
     const handleEdit = () => {
         if (!projectId) return;
         navigate(`/dashboard/projects/${projectId}/edit`);
@@ -361,13 +355,6 @@ export default function DashProject() {
                             onClick={handleEdit}
                         >
                             Редактировать карточку
-                        </Button>
-                        <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={handleCapture}
-                        >
-                            Начать съемку
                         </Button>
                     </div>
                 )}

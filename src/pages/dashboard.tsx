@@ -46,7 +46,7 @@ export default function Dashboard() {
     const mobileNavIds = isGuest
         ? ["gallery"]
         : isMuseumStaff
-          ? ["home", "inbox", "create", "profile"]
+          ? ["home", "create", "profile"]
           : ["home", "request", "gallery", "profile"];
     const mobileNav = allowedNavItems.filter((item) =>
         mobileNavIds.includes(item.id),

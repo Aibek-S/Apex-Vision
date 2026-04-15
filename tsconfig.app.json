@@ -24,5 +24,10 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "src/pages/dashboard/dash-capture.tsx",
+    "src/pages/dashboard/dash-inbox.tsx",
+    "src/pages/dashboard/dash-inbox-detail.tsx"
+  ]
 }

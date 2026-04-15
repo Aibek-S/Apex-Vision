@@ -10,13 +10,10 @@ import DashMain from "./pages/dashboard/dash-main.tsx";
 import DashProject from "./pages/dashboard/dash-project.tsx";
 import DashCreate from "./pages/dashboard/dash-create.tsx";
 import DashEdit from "./pages/dashboard/dash-edit.tsx";
-import DashCapture from "./pages/dashboard/dash-capture.tsx";
 import DashGallery from "./pages/dashboard/dash-gallery.tsx";
 import DashProfile from "./pages/dashboard/dash-profile.tsx";
 import DashHelp from "./pages/dashboard/dash-help.tsx";
 import DashRequest from "./pages/dashboard/dash-request.tsx";
-import DashInbox from "./pages/dashboard/dash-inbox.tsx";
-import DashInboxDetail from "./pages/dashboard/dash-inbox-detail.tsx";
 
 // Подключаем глобальные стили (включая директивы Tailwind)
 import "./index.css";
@@ -37,8 +34,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                     <Route path="/dashboard" element={<Dashboard />}>
                         <Route index element={<Navigate to="home" replace />} />
                         <Route path="home" element={<DashMain />} />
-                        <Route path="inbox" element={<DashInbox />} />
-                        <Route path="inbox/:id" element={<DashInboxDetail />} />
+                        <Route
+                            path="inbox"
+                            element={<Navigate to="/dashboard/home" replace />}
+                        />
+                        <Route
+                            path="inbox/:id"
+                            element={<Navigate to="/dashboard/home" replace />}
+                        />
                         <Route path="request" element={<DashRequest />} />
                         <Route path="create" element={<DashCreate />} />
                         <Route path="projects/:id" element={<DashProject />} />
@@ -48,7 +51,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                         />
                         <Route
                             path="projects/:id/capture"
-                            element={<DashCapture />}
+                            element={<Navigate to="/dashboard/home" replace />}
                         />
                         {/* Dashboard Pages */}
                         <Route path="gallery" element={<DashGallery />} />

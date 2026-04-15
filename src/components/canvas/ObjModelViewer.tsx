@@ -11,6 +11,7 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import type { Group } from "three";
 import { Box3, Vector3 } from "three";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { MTLLoader } from "three/examples/jsm/loaders/MTLLoader.js";
 
@@ -51,8 +52,6 @@ const ObjModel = ({
 
     useEffect(() => {
         let isActive = true;
-        setObject(null);
-        setError(null);
 
         const load = async () => {
             const objLoader = new OBJLoader();
@@ -110,12 +109,11 @@ const ObjModel = ({
         return () => {
             isActive = false;
         };
-    }, [objKey, objUrl, mtlUrl]);
+    }, [objKey, objUrl, mtlUrl, onReady]);
 
     if (error) {
         return (
             <group>
-                {/* eslint-disable-next-line react/no-unknown-property */}
                 <mesh>
                     <boxGeometry args={[1, 1, 1]} />
                     <meshStandardMaterial color="#ff6b6b" />
@@ -135,7 +133,7 @@ const ObjModel = ({
 
 const ObjModelViewer = forwardRef<ObjModelViewerHandle, ObjModelViewerProps>(
     ({ objUrl, mtlUrl, height = 320, autoRotate = false, onReady }, ref) => {
-    const controlsRef = useRef<any>(null);
+    const controlsRef = useRef<OrbitControlsImpl | null>(null);
     const groupRef = useRef<Group | null>(null);
     const glRef = useRef<import("three").WebGLRenderer | null>(null);
     const sceneRef = useRef<import("three").Scene | null>(null);
@@ -144,7 +142,9 @@ const ObjModelViewer = forwardRef<ObjModelViewerHandle, ObjModelViewerProps>(
     const [isFlipped, setIsFlipped] = useState(false);
 
     useEffect(() => {
-        const controls = controlsRef.current;
+        const controls = controlsRef.current as
+            | { mouseButtons?: { LEFT: number } }
+            | null;
         if (!controls) return;
 
         const setShiftPan = (enabled: boolean) => {
