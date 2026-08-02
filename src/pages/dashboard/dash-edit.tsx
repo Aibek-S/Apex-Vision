@@ -13,7 +13,7 @@ import { useAuth } from "../../contexts/useAuth";
 import { uploadArtifactImage } from "../../services/storageService";
 
 const PHOTO_BUCKET = "artifacts-images";
-const GEMINI_API_KEY = "***REDACTED***";
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GEMINI_MODEL = "gemini-2.5-flash";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 const AI_CLASSIFY_PROMPT = `
